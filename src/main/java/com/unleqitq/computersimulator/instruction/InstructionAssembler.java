@@ -242,6 +242,7 @@ public class InstructionAssembler {
 			long address = 0;
 			for (String part_ : code.split(";")) {
 				String part = part_.trim();
+				// Handle labels
 				{
 					Matcher labelMatcher =
 						Pattern.compile("^\\$(?<label>[a-zA-Z0-9_]+):(?<rest>.*)\\s*$").matcher(part);
@@ -319,7 +320,22 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				{
+					Matcher alignMatcher = Pattern.compile("^\\.align\\s+(?<align>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					if (alignMatcher.matches()) {
+						int align = (int) NumberUtils.parseNumber(alignMatcher.group("align"));
+						int offset = (int) (address % align);
+						if (offset != 0) {
+							byte[] data = new byte[align - offset];
+							// Should be zeroed
+							instructions.add(new PlaceholderInstruction(data));
+							address += data.length;
+						}
+						continue;
+					}
+				}
 				
+				// Instructions
 				Instruction instruction = parseInstruction(part);
 				if (instruction != null) {
 					address += instruction.getLength();
