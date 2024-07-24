@@ -234,30 +234,79 @@ public class InstructionAssembler {
 		code = removeComments(code);
 		code = minify(code);
 		
-		// TODO: Add defines
-		// TODO: Add label undefining
-		
-		Map<String, Long> labels = new HashMap<>();
-		long address = 0;
-		for (String part_ : code.split(";")) {
-			String part = part_.trim();
-			Matcher labelMatcher =
-				Pattern.compile("^\\$(?<label>[a-zA-Z0-9_]+):(?<rest>.*)$").matcher(part);
-			if (labelMatcher.matches()) {
-				String label = labelMatcher.group("label");
-				if (labels.containsKey(label)) System.err.println("Duplicate label: " + label);
-				labels.put(label, address + baseAddress);
-				part = labelMatcher.group("rest").trim();
-			}
-			Instruction instruction = parseInstruction(part);
-			if (instruction != null) {
-				address += instruction.getLength();
-				instructions.add(instruction);
+		// Key: Label name
+		// Value: Key: valid until, Value: address
+		Map<String, TreeMap<Long, Long>> labels = new HashMap<>();
+		{
+			long address = 0;
+			for (String part_ : code.split(";")) {
+				String part = part_.trim();
+				{
+					Matcher labelMatcher =
+						Pattern.compile("^\\$(?<label>[a-zA-Z0-9_]+):(?<rest>.*)$").matcher(part);
+					if (labelMatcher.matches()) {
+						String label = labelMatcher.group("label");
+						TreeMap<Long, Long> map = labels.computeIfAbsent(label, k -> new TreeMap<>());
+						if (!map.isEmpty() && map.lastKey() == Long.MAX_VALUE) {
+							System.err.println("Duplicate label: " + label);
+						}
+						map.put(Long.MAX_VALUE, address + baseAddress);
+						part = labelMatcher.group("rest").trim();
+					}
+				}
+				{
+					Matcher undefineMatcher =
+						Pattern.compile("^@undefine\\s+(?<label>[a-zA-Z0-9_]+)\\s*;\\s*(?<rest>.*)$")
+							.matcher(part);
+					if (undefineMatcher.matches()) {
+						String label = undefineMatcher.group("label");
+						TreeMap<Long, Long> map = labels.get(label);
+						if (map == null) {
+							System.err.println("Trying to undefine non-existing label: " + label);
+						}
+						else {
+							Map.Entry<Long, Long> last = map.lastEntry();
+							if (last.getKey() == Long.MAX_VALUE) {
+								map.remove(last.getKey());
+								map.put(address + baseAddress, last.getValue());
+							}
+							else {
+								System.err.println("Trying to undefine already undefined label: " + label);
+							}
+						}
+						part = undefineMatcher.group("rest").trim();
+					}
+				}
+				Instruction instruction = parseInstruction(part);
+				if (instruction != null) {
+					address += instruction.getLength();
+					instructions.add(instruction);
+				}
 			}
 		}
 		
-		List<Instruction> resolved =
-			instructions.stream().map(inst -> inst.resolved(labels::get)).toList();
+		List<Instruction> resolved = new ArrayList<>();
+		{
+			long address = 0;
+			for (Instruction instruction : instructions) {
+				long finalAddress = address;
+				resolved.add(instruction.resolved(label->{
+					TreeMap<Long, Long> map = labels.get(label);
+					if (map == null) {
+						System.err.println("Undefined label: " + label);
+						return 0L;
+					}
+					// Find smallest key that is larger than the current address
+					Map.Entry<Long, Long> entry = map.ceilingEntry(finalAddress + baseAddress);
+					if (entry == null) {
+						System.err.println("Label out of scope: " + label);
+						return 0L;
+					}
+					return entry.getValue();
+				}));
+				address += resolved.getLast().getLength();
+			}
+		}
 		
 		return assemble(resolved);
 	}
