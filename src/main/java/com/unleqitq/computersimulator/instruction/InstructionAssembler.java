@@ -350,6 +350,18 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				{
+					Matcher fillMatcher = Pattern.compile("^\\.fill\\s+(?<size>"+ NumberUtils.NUMBER_PATTERN +")\\s+(?<value>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					if (fillMatcher.matches()) {
+						int size = (int) NumberUtils.parseNumber(fillMatcher.group("size"));
+						byte value = (byte) NumberUtils.parseNumber(fillMatcher.group("value"));
+						byte[] data = new byte[size];
+						Arrays.fill(data, value);
+						instructions.add(new PlaceholderInstruction(data));
+						address += data.length;
+						continue;
+					}
+				}
 				
 				// Instructions
 				Instruction instruction = parseInstruction(part);
