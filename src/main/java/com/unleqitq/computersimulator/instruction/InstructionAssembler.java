@@ -256,8 +256,7 @@ public class InstructionAssembler {
 				}
 				{
 					Matcher undefineMatcher =
-						Pattern.compile("^@undefine\\s+(?<label>[a-zA-Z0-9_]+)\\s*;\\s*(?<rest>.*)$")
-							.matcher(part);
+						Pattern.compile("^\\.undefine\\s+(?<label>[a-zA-Z0-9_]+)$").matcher(part);
 					if (undefineMatcher.matches()) {
 						String label = undefineMatcher.group("label");
 						TreeMap<Long, Long> map = labels.get(label);
@@ -274,7 +273,21 @@ public class InstructionAssembler {
 								System.err.println("Trying to undefine already undefined label: " + label);
 							}
 						}
-						part = undefineMatcher.group("rest").trim();
+						continue;
+					}
+				}
+				{
+					Matcher dataMatcher = Pattern.compile("^\\.data\\s+(?<data>.+)$").matcher(part);
+					if (dataMatcher.matches()) {
+						String data = dataMatcher.group("data");
+						String[] parts = data.split(" ");
+						byte[] bytes = new byte[parts.length];
+						for (int i = 0; i < parts.length; i++) {
+							bytes[i] = (byte) Integer.parseInt(parts[i], 16);
+						}
+						instructions.add(new PlaceholderInstruction(bytes));
+						address += bytes.length;
+						continue;
 					}
 				}
 				Instruction instruction = parseInstruction(part);
@@ -290,7 +303,7 @@ public class InstructionAssembler {
 			long address = 0;
 			for (Instruction instruction : instructions) {
 				long finalAddress = address;
-				resolved.add(instruction.resolved(label->{
+				resolved.add(instruction.resolved(label -> {
 					TreeMap<Long, Long> map = labels.get(label);
 					if (map == null) {
 						System.err.println("Undefined label: " + label);
@@ -336,6 +349,48 @@ public class InstructionAssembler {
 			return null;
 		}
 		return def.parse(parts.length == 1 ? "" : parts[1]);
+	}
+	
+	public static class PlaceholderInstruction extends Instruction {
+		
+		@NotNull
+		private final byte[] data;
+		
+		public PlaceholderInstruction(@NotNull byte[] data) {
+			super(InstructionDef.NOP);
+			this.data = data;
+		}
+		
+		@Override
+		public void execute(@NotNull InstructionContext context) {
+			throw new UnsupportedOperationException("Placeholder instruction");
+		}
+		
+		@Override
+		protected int getPayloadLength() {
+			return data.length;
+		}
+		
+		@Override
+		public int getLength() {
+			return data.length;
+		}
+		
+		@Override
+		protected void assemblePayload(@NotNull ByteBuf buf) {
+			buf.writeBytes(data);
+		}
+		
+		@Override
+		public void assemble(@NotNull ByteBuf buf) {
+			assemblePayload(buf);
+		}
+		
+		@Override
+		protected String getAssemblyPayload() {
+			return null;
+		}
+		
 	}
 	
 }

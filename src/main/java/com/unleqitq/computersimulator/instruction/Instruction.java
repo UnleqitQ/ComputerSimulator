@@ -33,13 +33,13 @@ public abstract class Instruction {
 	
 	public abstract void execute(@NotNull InstructionContext context);
 	
-	public final int getLength() {
+	public int getLength() {
 		return 1 + getPayloadLength();
 	}
 	
 	protected abstract int getPayloadLength();
 	
-	public final void assemble(@NotNull ByteBuf buf) {
+	public void assemble(@NotNull ByteBuf buf) {
 		buf.writeByte(def.getOpcode());
 		assemblePayload(buf);
 	}
