@@ -298,11 +298,12 @@ public class InstructionAssembler {
 				}
 				// ASCII function
 				{
-					Matcher asciiMatcher = Pattern.compile("^\\.ascii\\s+\"(?<ascii>.+)\"\\s*$").matcher(part);
+					Matcher asciiMatcher =
+						Pattern.compile("^\\.ascii\\s+\"(?<ascii>.+)\"\\s*$").matcher(part);
 					if (asciiMatcher.matches()) {
 						String ascii = asciiMatcher.group("ascii");
 						// +1 for null terminator
-						byte[] data = new byte[ascii.length()+1];
+						byte[] data = new byte[ascii.length() + 1];
 						for (int i = 0; i < ascii.length(); i++) {
 							data[i] = (byte) ascii.charAt(i);
 						}
@@ -314,7 +315,9 @@ public class InstructionAssembler {
 				}
 				// Space function
 				{
-					Matcher spaceMatcher = Pattern.compile("^\\.space\\s+(?<size>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					Matcher spaceMatcher =
+						Pattern.compile("^\\.space\\s+(?<size>" + NumberUtils.NUMBER_PATTERN + ")\\s*$")
+							.matcher(part);
 					if (spaceMatcher.matches()) {
 						int size = (int) NumberUtils.parseNumber(spaceMatcher.group("size"));
 						byte[] data = new byte[size];
@@ -326,7 +329,9 @@ public class InstructionAssembler {
 				}
 				// Align function
 				{
-					Matcher alignMatcher = Pattern.compile("^\\.align\\s+(?<align>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					Matcher alignMatcher =
+						Pattern.compile("^\\.align\\s+(?<align>" + NumberUtils.NUMBER_PATTERN + ")\\s*$")
+							.matcher(part);
 					if (alignMatcher.matches()) {
 						int align = (int) NumberUtils.parseNumber(alignMatcher.group("align"));
 						int offset = (int) (address % align);
@@ -341,7 +346,9 @@ public class InstructionAssembler {
 				}
 				// Org function (set address)
 				{
-					Matcher orgMatcher = Pattern.compile("^\\.org\\s+(?<relative>~)?(?<address>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					Matcher orgMatcher = Pattern.compile(
+							"^\\.org\\s+(?<relative>~)?(?<address>" + NumberUtils.NUMBER_PATTERN + ")\\s*$")
+						.matcher(part);
 					if (orgMatcher.matches()) {
 						long newAddress = NumberUtils.parseNumber(orgMatcher.group("address"));
 						if (orgMatcher.group("relative") != null) {
@@ -358,7 +365,9 @@ public class InstructionAssembler {
 				}
 				// Fill function
 				{
-					Matcher fillMatcher = Pattern.compile("^\\.fill\\s+(?<size>"+ NumberUtils.NUMBER_PATTERN +")\\s+(?<value>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					Matcher fillMatcher = Pattern.compile(
+						"^\\.fill\\s+(?<size>" + NumberUtils.NUMBER_PATTERN + ")\\s+(?<value>" +
+							NumberUtils.NUMBER_PATTERN + ")\\s*$").matcher(part);
 					if (fillMatcher.matches()) {
 						int size = (int) NumberUtils.parseNumber(fillMatcher.group("size"));
 						byte value = (byte) NumberUtils.parseNumber(fillMatcher.group("value"));
@@ -366,6 +375,27 @@ public class InstructionAssembler {
 						Arrays.fill(data, value);
 						instructions.add(new PlaceholderInstruction(data));
 						address += data.length;
+						continue;
+					}
+				}
+				// Repeat function
+				{
+					Matcher repeatMatcher = Pattern.compile(
+							"^\\.repeat\\s+(?<count>" + NumberUtils.NUMBER_PATTERN + ")\\s+(?<code>.+)\\s*$")
+						.matcher(part);
+					if (repeatMatcher.matches()) {
+						int count = (int) NumberUtils.parseNumber(repeatMatcher.group("count"));
+						String code1 = repeatMatcher.group("code");
+						Instruction instruction = parseInstruction(code1);
+						if (instruction == null) {
+							System.err.println("Invalid instruction in repeat: " + code1);
+						}
+						else {
+							for (int i = 0; i < count; i++) {
+								instructions.add(instruction);
+							}
+							address += (long) instruction.getLength() * count;
+						}
 						continue;
 					}
 				}
