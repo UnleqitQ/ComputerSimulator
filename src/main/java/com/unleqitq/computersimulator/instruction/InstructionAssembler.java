@@ -1,5 +1,6 @@
 package com.unleqitq.computersimulator.instruction;
 
+import com.unleqitq.computersimulator.utils.NumberUtils;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 import lombok.experimental.UtilityClass;
@@ -254,6 +255,8 @@ public class InstructionAssembler {
 						part = labelMatcher.group("rest").trim();
 					}
 				}
+				
+				// Assembler Functions
 				{
 					Matcher undefineMatcher =
 						Pattern.compile("^\\.undefine\\s+(?<label>[a-zA-Z0-9_]+)\\s*$").matcher(part);
@@ -305,6 +308,18 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				{
+					Matcher spaceMatcher = Pattern.compile("^\\.space\\s+(?<size>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					if (spaceMatcher.matches()) {
+						int size = (int) NumberUtils.parseNumber(spaceMatcher.group("size"));
+						byte[] data = new byte[size];
+						// Should be zeroed
+						instructions.add(new PlaceholderInstruction(data));
+						address += data.length;
+						continue;
+					}
+				}
+				
 				Instruction instruction = parseInstruction(part);
 				if (instruction != null) {
 					address += instruction.getLength();
