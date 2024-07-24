@@ -258,6 +258,7 @@ public class InstructionAssembler {
 				}
 				
 				// Assembler Functions
+				// Undefine function (undefine label)
 				{
 					Matcher undefineMatcher =
 						Pattern.compile("^\\.undefine\\s+(?<label>[a-zA-Z0-9_]+)\\s*$").matcher(part);
@@ -280,6 +281,7 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				// Data function
 				{
 					Matcher dataMatcher = Pattern.compile("^\\.data\\s+(?<data>.+)\\s*$").matcher(part);
 					if (dataMatcher.matches()) {
@@ -294,6 +296,7 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				// ASCII function
 				{
 					Matcher asciiMatcher = Pattern.compile("^\\.ascii\\s+\"(?<ascii>.+)\"\\s*$").matcher(part);
 					if (asciiMatcher.matches()) {
@@ -309,6 +312,7 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				// Space function
 				{
 					Matcher spaceMatcher = Pattern.compile("^\\.space\\s+(?<size>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
 					if (spaceMatcher.matches()) {
@@ -320,6 +324,7 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				// Align function
 				{
 					Matcher alignMatcher = Pattern.compile("^\\.align\\s+(?<align>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
 					if (alignMatcher.matches()) {
@@ -334,6 +339,7 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				// Org function (set address)
 				{
 					Matcher orgMatcher = Pattern.compile("^\\.org\\s+(?<relative>~)?(?<address>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
 					if (orgMatcher.matches()) {
@@ -350,6 +356,7 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				// Fill function
 				{
 					Matcher fillMatcher = Pattern.compile("^\\.fill\\s+(?<size>"+ NumberUtils.NUMBER_PATTERN +")\\s+(?<value>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
 					if (fillMatcher.matches()) {
