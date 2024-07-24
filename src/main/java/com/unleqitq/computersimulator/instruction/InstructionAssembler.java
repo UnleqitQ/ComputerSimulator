@@ -243,7 +243,7 @@ public class InstructionAssembler {
 				String part = part_.trim();
 				{
 					Matcher labelMatcher =
-						Pattern.compile("^\\$(?<label>[a-zA-Z0-9_]+):(?<rest>.*)$").matcher(part);
+						Pattern.compile("^\\$(?<label>[a-zA-Z0-9_]+):(?<rest>.*)\\s*$").matcher(part);
 					if (labelMatcher.matches()) {
 						String label = labelMatcher.group("label");
 						TreeMap<Long, Long> map = labels.computeIfAbsent(label, k -> new TreeMap<>());
@@ -256,7 +256,7 @@ public class InstructionAssembler {
 				}
 				{
 					Matcher undefineMatcher =
-						Pattern.compile("^\\.undefine\\s+(?<label>[a-zA-Z0-9_]+)$").matcher(part);
+						Pattern.compile("^\\.undefine\\s+(?<label>[a-zA-Z0-9_]+)\\s*$").matcher(part);
 					if (undefineMatcher.matches()) {
 						String label = undefineMatcher.group("label");
 						TreeMap<Long, Long> map = labels.get(label);
@@ -277,7 +277,7 @@ public class InstructionAssembler {
 					}
 				}
 				{
-					Matcher dataMatcher = Pattern.compile("^\\.data\\s+(?<data>.+)$").matcher(part);
+					Matcher dataMatcher = Pattern.compile("^\\.data\\s+(?<data>.+)\\s*$").matcher(part);
 					if (dataMatcher.matches()) {
 						String data = dataMatcher.group("data");
 						String[] parts = data.split(" ");
@@ -287,6 +287,21 @@ public class InstructionAssembler {
 						}
 						instructions.add(new PlaceholderInstruction(bytes));
 						address += bytes.length;
+						continue;
+					}
+				}
+				{
+					Matcher asciiMatcher = Pattern.compile("^\\.ascii\\s+\"(?<ascii>.+)\"\\s*$").matcher(part);
+					if (asciiMatcher.matches()) {
+						String ascii = asciiMatcher.group("ascii");
+						// +1 for null terminator
+						byte[] data = new byte[ascii.length()+1];
+						for (int i = 0; i < ascii.length(); i++) {
+							data[i] = (byte) ascii.charAt(i);
+						}
+						data[ascii.length()] = 0;
+						instructions.add(new PlaceholderInstruction(data));
+						address += data.length;
 						continue;
 					}
 				}
