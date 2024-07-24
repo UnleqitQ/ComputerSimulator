@@ -334,6 +334,22 @@ public class InstructionAssembler {
 						continue;
 					}
 				}
+				{
+					Matcher orgMatcher = Pattern.compile("^\\.org\\s+(?<relative>~)?(?<address>"+ NumberUtils.NUMBER_PATTERN +")\\s*$").matcher(part);
+					if (orgMatcher.matches()) {
+						long newAddress = NumberUtils.parseNumber(orgMatcher.group("address"));
+						if (orgMatcher.group("relative") != null) {
+							newAddress += address;
+						}
+						if (newAddress < address) {
+							System.err.println("Cannot set address to lower value: " + newAddress);
+						}
+						else {
+							address = newAddress;
+						}
+						continue;
+					}
+				}
 				
 				// Instructions
 				Instruction instruction = parseInstruction(part);
